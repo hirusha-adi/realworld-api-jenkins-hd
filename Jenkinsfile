@@ -135,6 +135,15 @@ pipeline {
                         docker rm -f "realworld-test-db-${BUILD_NUMBER}" 2>/dev/null || true
                     '''
 
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'coverage/api/lcov-report',
+                        reportFiles: 'index.html',
+                        reportName: 'Code Coverage Report'
+                    ])
+
                     junit allowEmptyResults: true, testResults: 'reports/junit/*.xml'
 
                     archiveArtifacts artifacts: 'coverage/**/*,reports/junit/**/*', allowEmptyArchive: true
