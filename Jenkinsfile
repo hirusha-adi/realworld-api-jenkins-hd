@@ -143,13 +143,18 @@ pipeline {
         }
 
         stage('Code Quality') {
-            steps {
-                sh '''
-                    echo "Running lint check..."
-                    npx nx lint api || true
-                '''
-            }
-        }
+          steps {
+              withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                  sh '''
+                      echo "Running lint check..."
+                      npx nx lint api || true
+
+                      echo "Running SonarQube scan..."
+                      sonar-scanner
+                  '''
+              }
+          }
+      }
 
         stage('Security Scan') {
             steps {
