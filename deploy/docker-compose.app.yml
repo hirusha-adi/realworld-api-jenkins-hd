@@ -1,0 +1,84 @@
+services:
+  hirusha-sit223-db:
+    image: postgres:16-alpine
+    container_name: ${DB_CONTAINER}
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+    networks:
+      app_internal:
+        aliases:
+          - ${DB_HOST_ALIAS}
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "PGPASSWORD=$$POSTGRES_PASSWORD psql -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1;' >/dev/null"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  hirusha-sit223-api:
+    image: ${APP_IMAGE}
+    container_name: ${APP_CONTAINER}
+    restart: unless-stopped
+
+    depends_on:
+      hirusha-sit223-db:
+        condition: service_healthy
+
+    environment:
+      APP_ENV: ${APP_ENV}
+      GIT_COMMIT: ${GIT_COMMIT}
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      NEW_RELIC_ACCOUNT_ID: ${NEW_RELIC_ACCOUNT_ID}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME}
+      NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: "true"
+      NODE_OPTIONS: "-r newrelic"
+
+    networks:
+      app_internal:
+      intranet_1:
+        aliases:
+          - ${APP_CONTAINER}
+
+    expose:
+      - "3000"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  db_data:
+
+networks:
+  app_internal:
+    driver: bridge
+
+  intranet_1:
+    external: true
