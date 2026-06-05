@@ -144,7 +144,7 @@ pipeline {
 
         stage('Code Quality') {
           steps {
-              withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+              withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                   sh '''
                       echo "Running lint check..."
                       npx nx lint api || true
